@@ -51,8 +51,10 @@ var (
 	offset   gl.Uniform
 	color    gl.Uniform
 	buf      gl.Buffer
+	buf2     gl.Buffer
 
 	green  float32
+	detposx  float32
 	touchX float32
 	touchY float32
 )
@@ -110,6 +112,10 @@ func onStart(glctx gl.Context) {
 	glctx.BindBuffer(gl.ARRAY_BUFFER, buf)
 	glctx.BufferData(gl.ARRAY_BUFFER, triangleData, gl.STATIC_DRAW)
 
+	buf2 = glctx.CreateBuffer()
+	glctx.BindBuffer(gl.ARRAY_BUFFER, buf2)
+	glctx.BufferData(gl.ARRAY_BUFFER, triangleData2, gl.STATIC_DRAW)
+
 	position = glctx.GetAttribLocation(program, "position")
 	color = glctx.GetUniformLocation(program, "color")
 	offset = glctx.GetUniformLocation(program, "offset")
@@ -121,6 +127,7 @@ func onStart(glctx gl.Context) {
 func onStop(glctx gl.Context) {
 	glctx.DeleteProgram(program)
 	glctx.DeleteBuffer(buf)
+	glctx.DeleteBuffer(buf2)
 	fps.Release()
 	images.Release()
 }
@@ -131,19 +138,31 @@ func onPaint(glctx gl.Context, sz size.Event) {
 
 	glctx.UseProgram(program)
 
+        detposx += 0.01
+        if detposx > 1 {
+            detposx = 0
+        }
+
 	green += 0.01
 	if green > 1 {
-		green = 0
+            green = 0
 	}
 	glctx.Uniform4f(color, 0, green, 0, 1)
-
-	glctx.Uniform2f(offset, touchX/float32(sz.WidthPx), touchY/float32(sz.HeightPx))
-
+	glctx.Uniform2f(offset, detposx+touchX/float32(sz.WidthPx), touchY/float32(sz.HeightPx))
 	glctx.BindBuffer(gl.ARRAY_BUFFER, buf)
 	glctx.EnableVertexAttribArray(position)
 	glctx.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)
 	glctx.DrawArrays(gl.TRIANGLES, 0, vertexCount)
 	glctx.DisableVertexAttribArray(position)
+
+	glctx.Uniform4f(color, 0, 0, green, 1)
+	glctx.Uniform2f(offset, detposx+touchX/float32(sz.WidthPx), touchY/float32(sz.HeightPx))
+	glctx.BindBuffer(gl.ARRAY_BUFFER, buf2)
+	glctx.EnableVertexAttribArray(position)
+	glctx.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)
+	glctx.DrawArrays(gl.TRIANGLES, 0, vertexCount)
+	glctx.DisableVertexAttribArray(position)
+
 
 	fps.Draw(sz)
 }
@@ -153,6 +172,12 @@ var triangleData = f32.Bytes(binary.LittleEndian,
 	0.0, 0.0, 0.0, // bottom left
 	0.4, 0.0, 0.0, // bottom right
 )
+var triangleData2 = f32.Bytes(binary.LittleEndian,
+	0.0, 0.4, 0.0,
+	0.4, 0.4, 0.0,
+	0.4, 0.0, 0.0,
+)
+
 
 const (
 	coordsPerVertex = 3
